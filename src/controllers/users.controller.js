@@ -549,7 +549,10 @@ export const editDoctor = async (req, res) => {
         message: "Format tanggal lahir harus YYYY-MM-DD dan valid",
       });
 
-    const [doctor] = await db.query("SELECT id FROM users WHERE id = ?", [id]);
+    const [doctor] = await db.query(
+      "SELECT id FROM users WHERE id = ? AND role_id = 3",
+      [id],
+    );
     if (doctor.length === 0)
       return res
         .status(404)
@@ -615,7 +618,10 @@ export const resetDoctorPassword = async (req, res) => {
         .json({ success: false, message: "Password minimal 8 karakter" });
     }
 
-    const [doctor] = await db.query("SELECT id FROM users WHERE id = ?", [id]);
+    const [doctor] = await db.query(
+      "SELECT id FROM users WHERE id = ? AND role_id = 3",
+      [id],
+    );
     if (doctor.length === 0)
       return res
         .status(404)
@@ -624,7 +630,7 @@ export const resetDoctorPassword = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await db.query(
-      `UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?`,
+      `UPDATE users SET password = ?, updated_at = NOW() WHERE id = ? `,
       [hashedPassword, id],
     );
 
@@ -933,6 +939,93 @@ export const editAdmin = async (req, res) => {
     });
   } catch (error) {
     console.error("Edit Admin Error:", error.sqlMessage || error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.sqlMessage || error.message || "Terjadi kesalahan server",
+    });
+  }
+};
+
+export const resetAdminPassword = async (req, res) => {
+  try {
+    const { id, password } = req.body;
+
+    if (!id || !password) {
+      return res
+        .status(400)
+        .json({ success: false, message: "ID dan password baru wajib diisi" });
+    }
+
+    const passwordRegex = /^.{8,}$/;
+    if (!passwordRegex.test(password)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Password minimal 8 karakter" });
+    }
+
+    const [doctor] = await db.query(
+      "SELECT id FROM users WHERE id = ? AND role_id = 2",
+      [id],
+    );
+    if (doctor.length === 0)
+      return res
+        .status(404)
+        .json({ success: false, message: "Admin tidak ditemukan" });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await db.query(
+      `UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?`,
+      [hashedPassword, id],
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Password admin berhasil direset",
+    });
+  } catch (error) {
+    console.error(
+      "Reset Admin Password Error:",
+      error.sqlMessage || error.message,
+    );
+    return res.status(500).json({
+      success: false,
+      message: error.sqlMessage || error.message || "Terjadi kesalahan server",
+    });
+  }
+};
+
+export const deleteAdmin = async (req, res) => {
+  try {
+    const { id } = req.body || {};
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "ID wajib diisi",
+      });
+    }
+
+    const [doctor] = await db.query(
+      "SELECT id FROM users WHERE id = ? AND role_id = 2",
+      [id],
+    );
+    if (doctor.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin tidak ditemukan",
+      });
+    }
+
+    await db.query("DELETE FROM users WHERE id = ?", [id]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Admin berhasil dihapus",
+      data: { id },
+    });
+  } catch (error) {
+    console.error("Delete Admin Error:", error.sqlMessage || error.message);
     return res.status(500).json({
       success: false,
       message: error.sqlMessage || error.message || "Terjadi kesalahan server",

@@ -1,8 +1,9 @@
 import express from "express";
 import {
-    createAdmin,
+  createAdmin,
   createDoctor,
   createPatient,
+  deleteAdmin,
   deleteDoctor,
   deletePatient,
   editAdmin,
@@ -11,6 +12,7 @@ import {
   getDoctors,
   getPatients,
   getRoles,
+  resetAdminPassword,
   resetDoctorPassword,
 } from "../controllers/users.controller.js";
 
@@ -30,5 +32,7 @@ router.post("/doctor/get", getDoctors);
 
 router.post("/admin/create", createAdmin);
 router.post("/admin/edit", editAdmin);
+router.post("/admin/resetpassword", resetAdminPassword);
+router.post("/admin/delete", deleteAdmin);
 
 export default router;
