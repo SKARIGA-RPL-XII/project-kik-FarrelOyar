@@ -1,6 +1,6 @@
 import db from "../config/db.js";
+import bcrypt from "bcrypt";
 
-// Dummy data (sementara, nanti ganti DB)
 
 const isValidDate = (dateString) => {
   // Format YYYY-MM-DD
@@ -345,6 +345,409 @@ export const getPatients = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Terjadi kesalahan server",
+    });
+  }
+};
+
+export const createDoctor = async (req, res) => {
+  try {
+    const {
+      name,
+      gender,
+      phone,
+      email,
+      birth,
+      address,
+      password,
+      action_commission,
+    } = req.body;
+    if (
+      !name ||
+      !gender ||
+      !phone ||
+      !email ||
+      !birth ||
+      !address ||
+      !password ||
+      !action_commission
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Semua field wajib diisi",
+      });
+    }
+    if (!["male", "female"].includes(gender)) {
+      return res.status(400).json({
+        success: false,
+        message: "Gender harus male atau female",
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^[0-9]{10,15}$/;
+    const passwordRegex = /^.{8,}$/;
+    const commissionRegex = /^(100|[1-9][0-9]?|0?[1-9])$/;
+
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({
+        success: false,
+        message: "Format nomor HP tidak valid",
+      });
+    }
+
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Format email tidak valid",
+      });
+    }
+
+    // Validasi password
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        success: false,
+        message: "Password minimal 8 karakter",
+      });
+    }
+
+    // Validasi commission
+    if (!commissionRegex.test(action_commission)) {
+      return res.status(400).json({
+        success: false,
+        message: "Commission harus antara 1 sampai 100",
+      });
+    }
+
+    if (!isValidDate(birth)) {
+      return res.status(400).json({
+        success: false,
+        message: "Format tanggal lahir harus YYYY-MM-DD dan valid",
+      });
+    }
+
+    const [check] = await db.query("SELECT id FROM users WHERE email = ?", [
+      email,
+    ]);
+
+    if (check.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: "Email sudah terdaftar",
+      });
+    }
+
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // ===============================
+    // Masukkan data doctor ke tabel users
+    // ===============================
+    const queryUser = `
+      INSERT INTO users
+      (name, gender, phone_number, email, date_of_birth, address, password, role_id, is_active, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 3, 1, NOW())
+    `;
+
+    const [resultUser] = await db.query(queryUser, [
+      name,
+      gender,
+      phone,
+      email,
+      birth,
+      address,
+      hashedPassword, // <-- simpan password yang sudah di-hash
+    ]);
+
+    const userId = resultUser.insertId;
+
+    const queryCommission = `
+        INSERT INTO contract_doctors
+        (user_id, action_commission, total_commission, is_active, created_at, updated_at)
+        VALUES (?, ?, 0, 1, NOW(), NOW())
+    `;
+    const actionCommissionInt = parseInt(action_commission);
+
+    await db.query(queryCommission, [userId, actionCommissionInt]);
+
+    return res.status(201).json({
+      success: true,
+      message: "Doctor berhasil dibuat",
+      data: {
+        id: userId,
+        name,
+        gender,
+        phone,
+        email,
+        birth,
+        address,
+        action_commission,
+      },
+    });
+  } catch (error) {
+    console.error("Create Doctor Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Terjadi kesalahan server",
+    });
+  }
+};
+
+export const editDoctor = async (req, res) => {
+  try {
+    const {
+      id,
+      name,
+      gender,
+      phone,
+      email,
+      birth,
+      address,
+      action_commission,
+    } = req.body;
+
+    if (
+      !id ||
+      !name ||
+      !gender ||
+      !phone ||
+      !email ||
+      !birth ||
+      !address ||
+      !action_commission
+    ) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Semua field wajib diisi" });
+    }
+
+    if (!["male", "female"].includes(gender)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Gender harus male atau female" });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^[0-9]{10,15}$/;
+    const commissionRegex = /^(100|[1-9][0-9]?|0?[1-9])$/;
+
+    if (!phoneRegex.test(phone))
+      return res
+        .status(400)
+        .json({ success: false, message: "Format nomor HP tidak valid" });
+    if (!emailRegex.test(email))
+      return res
+        .status(400)
+        .json({ success: false, message: "Format email tidak valid" });
+    if (!commissionRegex.test(action_commission))
+      return res.status(400).json({
+        success: false,
+        message: "Commission harus antara 1 sampai 100",
+      });
+    if (!isValidDate(birth))
+      return res.status(400).json({
+        success: false,
+        message: "Format tanggal lahir harus YYYY-MM-DD dan valid",
+      });
+
+    const [doctor] = await db.query("SELECT id FROM users WHERE id = ?", [id]);
+    if (doctor.length === 0)
+      return res
+        .status(404)
+        .json({ success: false, message: "Doctor tidak ditemukan" });
+
+    const [checkEmail] = await db.query(
+      "SELECT id FROM users WHERE email = ? AND id != ?",
+      [email, id],
+    );
+    if (checkEmail.length > 0)
+      return res
+        .status(409)
+        .json({ success: false, message: "Email sudah digunakan user lain" });
+
+    await db.query(
+      `UPDATE users SET name = ?, gender = ?, phone_number = ?, email = ?, date_of_birth = ?, address = ?, updated_at = NOW() WHERE id = ?`,
+      [name, gender, phone, email, birth, address, id],
+    );
+
+    const actionCommissionInt = parseInt(action_commission);
+    await db.query(
+      `UPDATE contract_doctors SET action_commission = ?, updated_at = NOW() WHERE user_id = ?`,
+      [actionCommissionInt, id],
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Doctor berhasil diperbarui",
+      data: {
+        id,
+        name,
+        gender,
+        phone,
+        email,
+        birth,
+        address,
+        action_commission,
+      },
+    });
+  } catch (error) {
+    console.error("Edit Doctor Error:", error.sqlMessage || error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.sqlMessage || error.message || "Terjadi kesalahan server",
+    });
+  }
+};
+
+export const resetDoctorPassword = async (req, res) => {
+  try {
+    const { id, password } = req.body;
+
+    if (!id || !password) {
+      return res
+        .status(400)
+        .json({ success: false, message: "ID dan password baru wajib diisi" });
+    }
+
+    const passwordRegex = /^.{8,}$/;
+    if (!passwordRegex.test(password)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Password minimal 8 karakter" });
+    }
+
+    const [doctor] = await db.query("SELECT id FROM users WHERE id = ?", [id]);
+    if (doctor.length === 0)
+      return res
+        .status(404)
+        .json({ success: false, message: "Doctor tidak ditemukan" });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await db.query(
+      `UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?`,
+      [hashedPassword, id],
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Password doctor berhasil direset",
+    });
+  } catch (error) {
+    console.error(
+      "Reset Doctor Password Error:",
+      error.sqlMessage || error.message,
+    );
+    return res.status(500).json({
+      success: false,
+      message: error.sqlMessage || error.message || "Terjadi kesalahan server",
+    });
+  }
+};
+
+export const deleteDoctor = async (req, res) => {
+  try {
+    const { id } = req.body || {};
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "ID wajib diisi",
+      });
+    }
+
+    const [doctor] = await db.query(
+      "SELECT id FROM users WHERE id = ? AND role_id = 3",
+      [id],
+    );
+    if (doctor.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Doctor tidak ditemukan",
+      });
+    }
+
+    await db.query("DELETE FROM contract_doctors WHERE user_id = ?", [id]);
+
+    await db.query("DELETE FROM users WHERE id = ?", [id]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Doctor beserta kontraknya berhasil dihapus",
+      data: { id },
+    });
+  } catch (error) {
+    console.error("Delete Doctor Error:", error.sqlMessage || error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.sqlMessage || error.message || "Terjadi kesalahan server",
+    });
+  }
+};
+
+export const getDoctors = async (req, res) => {
+  try {
+    const { search = "", page = 1, limit = 10 } = req.body;
+
+    const offset = (page - 1) * limit;
+    const searchTerm = `%${search}%`;
+
+    const query = `
+      SELECT 
+        u.id AS user_id, u.name, u.gender, u.phone_number AS phone, u.email, u.date_of_birth AS birth, u.address,
+        c.id AS contract_id, c.action_commission, c.total_commission, c.is_active AS contract_active
+      FROM users u
+      LEFT JOIN contract_doctors c ON u.id = c.user_id
+      WHERE u.role_id = 3 AND u.name LIKE ?
+      ORDER BY u.id ASC
+      LIMIT ? OFFSET ?
+    `;
+
+    const [rows] = await db.query(query, [
+      searchTerm,
+      parseInt(limit),
+      parseInt(offset),
+    ]);
+
+    const data = rows.map((row) => ({
+      id: row.user_id,
+      name: row.name,
+      gender: row.gender,
+      phone: row.phone,
+      email: row.email,
+      birth: row.birth,
+      address: row.address,
+      contract: row.contract_id
+        ? {
+            id: row.contract_id,
+            action_commission: row.action_commission,
+            total_commission: row.total_commission,
+            is_active: row.contract_active,
+          }
+        : null,
+    }));
+
+    const [totalRows] = await db.query(
+      `SELECT COUNT(*) AS total FROM users WHERE role_id = 3 AND name LIKE ?`,
+      [searchTerm],
+    );
+    const total = totalRows[0].total;
+
+    return res.status(200).json({
+      success: true,
+      data,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Get Doctors Error:", error.sqlMessage || error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.sqlMessage || error.message || "Terjadi kesalahan server",
     });
   }
 };
