@@ -1,18 +1,43 @@
 import express from "express";
 import userRoutes from "./routes/users.routes.js";
-
+import db from "./config/db.js";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 
 // routes
 app.use("/api/users", userRoutes);
 
+
+
+
+
+
 app.get("/", (req, res) => {
   res.json({ message: "Server is running 🚀" });
 });
+
+app.get("/test-db", async (req, res) => {
+  try {
+    const [rows] = await db.query("SELECT 1");
+    res.json({
+      success: true,
+      message: "Database connected",
+      data: rows,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
+});
+
 
 app.listen(PORT, () => {
   console.log("Running port:", PORT);
