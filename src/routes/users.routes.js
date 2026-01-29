@@ -9,6 +9,7 @@ import {
   editAdmin,
   editDoctor,
   editPatient,
+  getAdmin,
   getDoctors,
   getPatients,
   getRoles,
@@ -30,9 +31,10 @@ router.post("/doctor/resetpassword", resetDoctorPassword);
 router.post("/doctor/delete", deleteDoctor);
 router.post("/doctor/get", getDoctors);
 
-router.post("/admin/create", createAdmin);
+router.post("/admin/create", createAdmin);  
 router.post("/admin/edit", editAdmin);
 router.post("/admin/resetpassword", resetAdminPassword);
 router.post("/admin/delete", deleteAdmin);
+router.post("/admin/get", getAdmin);
 
 export default router;

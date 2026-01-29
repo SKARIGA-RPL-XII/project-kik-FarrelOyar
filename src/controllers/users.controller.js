@@ -1032,3 +1032,61 @@ export const deleteAdmin = async (req, res) => {
     });
   }
 };
+
+export const getAdmin = async (req, res) => {
+  try {
+    const { search = "", page = 1, limit = 10 } = req.body;
+
+    const offset = (page - 1) * limit;
+    const searchTerm = `%${search}%`;
+
+    const query = `
+      SELECT 
+        u.id AS user_id, u.name, u.gender, u.phone_number AS phone, u.email, u.date_of_birth AS birth, u.address
+      FROM users u
+      WHERE u.role_id = 2 AND u.name LIKE ?
+      ORDER BY u.id ASC
+      LIMIT ? OFFSET ?
+    `;
+
+    const [rows] = await db.query(query, [
+      searchTerm,
+      parseInt(limit),
+      parseInt(offset),
+    ]);
+
+    const data = rows.map((row) => ({
+      id: row.user_id,
+      name: row.name,
+      gender: row.gender,
+      phone: row.phone,
+      email: row.email,
+      birth: row.birth,
+      address: row.address,
+    }));
+
+    const [totalRows] = await db.query(
+      `SELECT COUNT(*) AS total FROM users WHERE role_id = 2 AND name LIKE ?`,
+      [searchTerm],
+    );
+    const total = totalRows[0].total;
+
+    return res.status(200).json({
+      success: true,
+      data,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Get Admin Error:", error.sqlMessage || error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.sqlMessage || error.message || "Terjadi kesalahan server",
+    });
+  }
+};
+
