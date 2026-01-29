@@ -1,7 +1,6 @@
 import db from "../config/db.js";
 import bcrypt from "bcrypt";
 
-
 const isValidDate = (dateString) => {
   // Format YYYY-MM-DD
   const regex = /^\d{4}-\d{2}-\d{2}$/;
@@ -745,6 +744,195 @@ export const getDoctors = async (req, res) => {
     });
   } catch (error) {
     console.error("Get Doctors Error:", error.sqlMessage || error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.sqlMessage || error.message || "Terjadi kesalahan server",
+    });
+  }
+};
+
+export const createAdmin = async (req, res) => {
+  try {
+    const { name, gender, phone, email, birth, address, password } = req.body;
+    if (
+      !name ||
+      !gender ||
+      !phone ||
+      !email ||
+      !birth ||
+      !address ||
+      !password
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Semua field wajib diisi",
+      });
+    }
+    if (!["male", "female"].includes(gender)) {
+      return res.status(400).json({
+        success: false,
+        message: "Gender harus male atau female",
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^[0-9]{10,15}$/;
+    const passwordRegex = /^.{8,}$/;
+
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({
+        success: false,
+        message: "Format nomor HP tidak valid",
+      });
+    }
+
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Format email tidak valid",
+      });
+    }
+
+    // Validasi password
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        success: false,
+        message: "Password minimal 8 karakter",
+      });
+    }
+
+    if (!isValidDate(birth)) {
+      return res.status(400).json({
+        success: false,
+        message: "Format tanggal lahir harus YYYY-MM-DD dan valid",
+      });
+    }
+
+    const [check] = await db.query("SELECT id FROM users WHERE email = ?", [
+      email,
+    ]);
+
+    if (check.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: "Email sudah terdaftar",
+      });
+    }
+
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    const queryUser = `
+      INSERT INTO users
+      (name, gender, phone_number, email, date_of_birth, address, password, role_id, is_active, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 2, 1, NOW())
+    `;
+
+    const [resultUser] = await db.query(queryUser, [
+      name,
+      gender,
+      phone,
+      email,
+      birth,
+      address,
+      hashedPassword, // <-- simpan password yang sudah di-hash
+    ]);
+
+    return res.status(201).json({
+      success: true,
+      message: "Admin berhasil dibuat",
+      data: {
+        id: resultUser.id,
+        name,
+        gender,
+        phone,
+        email,
+        birth,
+        address,
+      },
+    });
+  } catch (error) {
+    console.error("Create Admin Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Terjadi kesalahan server",
+    });
+  }
+};
+
+export const editAdmin = async (req, res) => {
+  try {
+    const { id, name, gender, phone, email, birth, address } = req.body;
+
+    if (!id || !name || !gender || !phone || !email || !birth || !address) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Semua field wajib diisi" });
+    }
+
+    if (!["male", "female"].includes(gender)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Gender harus male atau female" });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^[0-9]{10,15}$/;
+
+    if (!phoneRegex.test(phone))
+      return res
+        .status(400)
+        .json({ success: false, message: "Format nomor HP tidak valid" });
+    if (!emailRegex.test(email))
+      return res
+        .status(400)
+        .json({ success: false, message: "Format email tidak valid" });
+
+    if (!isValidDate(birth))
+      return res.status(400).json({
+        success: false,
+        message: "Format tanggal lahir harus YYYY-MM-DD dan valid",
+      });
+
+    const [admin] = await db.query(
+      "SELECT id FROM users WHERE id = ? AND role_id = 2",
+      [id],
+    );
+    if (admin.length === 0)
+      return res
+        .status(404)
+        .json({ success: false, message: "Admin tidak ditemukan" });
+
+    const [checkEmail] = await db.query(
+      "SELECT id FROM users WHERE email = ? AND id != ?",
+      [email, id],
+    );
+    if (checkEmail.length > 0)
+      return res
+        .status(409)
+        .json({ success: false, message: "Email sudah digunakan user lain" });
+
+    await db.query(
+      `UPDATE users SET name = ?, gender = ?, phone_number = ?, email = ?, date_of_birth = ?, address = ?, updated_at = NOW() WHERE id = ?`,
+      [name, gender, phone, email, birth, address, id],
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Admin berhasil diperbarui",
+      data: {
+        id,
+        name,
+        gender,
+        phone,
+        email,
+        birth,
+        address,
+      },
+    });
+  } catch (error) {
+    console.error("Edit Admin Error:", error.sqlMessage || error.message);
     return res.status(500).json({
       success: false,
       message: error.sqlMessage || error.message || "Terjadi kesalahan server",

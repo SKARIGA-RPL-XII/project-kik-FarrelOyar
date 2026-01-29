@@ -1,9 +1,11 @@
 import express from "express";
 import {
+    createAdmin,
   createDoctor,
   createPatient,
   deleteDoctor,
   deletePatient,
+  editAdmin,
   editDoctor,
   editPatient,
   getDoctors,
@@ -26,6 +28,7 @@ router.post("/doctor/resetpassword", resetDoctorPassword);
 router.post("/doctor/delete", deleteDoctor);
 router.post("/doctor/get", getDoctors);
 
-// router.post("/", createUser);
+router.post("/admin/create", createAdmin);
+router.post("/admin/edit", editAdmin);
 
 export default router;
