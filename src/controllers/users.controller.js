@@ -2,7 +2,6 @@ import db from "../config/db.js";
 import bcrypt from "bcrypt";
 
 const isValidDate = (dateString) => {
-  // Format YYYY-MM-DD
   const regex = /^\d{4}-\d{2}-\d{2}$/;
 
   if (!regex.test(dateString)) return false;
@@ -11,7 +10,6 @@ const isValidDate = (dateString) => {
 
   if (isNaN(date.getTime())) return false;
 
-  // Cocokkan lagi (hindari 2025-02-30 dll)
   const [year, month, day] = dateString.split("-");
 
   return (
@@ -229,9 +227,6 @@ export const deletePatient = async (req, res) => {
   try {
     const { id } = req.body || {};
 
-    // ===============================
-    // Validasi
-    // ===============================
     if (!id) {
       return res.status(400).json({
         success: false,
@@ -239,9 +234,6 @@ export const deletePatient = async (req, res) => {
       });
     }
 
-    // ===============================
-    // Cek patient ada?
-    // ===============================
     const [patient] = await db.query("SELECT id FROM patients WHERE id = ?", [
       id,
     ]);
@@ -253,14 +245,8 @@ export const deletePatient = async (req, res) => {
       });
     }
 
-    // ===============================
-    // Hapus data
-    // ===============================
     await db.query("DELETE FROM patients WHERE id = ?", [id]);
 
-    // ===============================
-    // Response
-    // ===============================
     return res.status(200).json({
       success: true,
       message: "Patient berhasil dihapus",
@@ -282,9 +268,6 @@ export const getPatients = async (req, res) => {
   try {
     let { search = "", page = 1, limit = 10 } = req.body;
 
-    // ===============================
-    // Parsing number
-    // ===============================
     page = parseInt(page);
     limit = parseInt(limit);
 
@@ -295,9 +278,6 @@ export const getPatients = async (req, res) => {
 
     const keyword = `%${search}%`;
 
-    // ===============================
-    // Hitung total data
-    // ===============================
     const [countResult] = await db.query(
       `
       SELECT COUNT(*) AS total
@@ -310,9 +290,6 @@ export const getPatients = async (req, res) => {
     const totalData = countResult[0].total;
     const totalPage = Math.ceil(totalData / limit);
 
-    // ===============================
-    // Ambil data
-    // ===============================
     const [rows] = await db.query(
       `
       SELECT *
@@ -324,9 +301,6 @@ export const getPatients = async (req, res) => {
       [keyword, limit, offset],
     );
 
-    // ===============================
-    // Response
-    // ===============================
     return res.status(200).json({
       success: true,
       message: "Data patients berhasil diambil",
@@ -401,7 +375,6 @@ export const createDoctor = async (req, res) => {
       });
     }
 
-    // Validasi password
     if (!passwordRegex.test(password)) {
       return res.status(400).json({
         success: false,
@@ -409,7 +382,6 @@ export const createDoctor = async (req, res) => {
       });
     }
 
-    // Validasi commission
     if (!commissionRegex.test(action_commission)) {
       return res.status(400).json({
         success: false,
@@ -438,9 +410,6 @@ export const createDoctor = async (req, res) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // ===============================
-    // Masukkan data doctor ke tabel users
-    // ===============================
     const queryUser = `
       INSERT INTO users
       (name, gender, phone_number, email, date_of_birth, address, password, role_id, is_active, created_at)
@@ -454,7 +423,7 @@ export const createDoctor = async (req, res) => {
       email,
       birth,
       address,
-      hashedPassword, // <-- simpan password yang sudah di-hash
+      hashedPassword,
     ]);
 
     const userId = resultUser.insertId;
@@ -799,7 +768,6 @@ export const createAdmin = async (req, res) => {
       });
     }
 
-    // Validasi password
     if (!passwordRegex.test(password)) {
       return res.status(400).json({
         success: false,
@@ -841,7 +809,7 @@ export const createAdmin = async (req, res) => {
       email,
       birth,
       address,
-      hashedPassword, // <-- simpan password yang sudah di-hash
+      hashedPassword,
     ]);
 
     return res.status(201).json({
@@ -1089,4 +1057,3 @@ export const getAdmin = async (req, res) => {
     });
   }
 };
-
