@@ -1,5 +1,6 @@
 import express from "express";
 import userRoutes from "./routes/users.routes.js";
+import itemRoutes from "./routes/items.routes.js";
 import db from "./config/db.js";
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,6 +12,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // routes
 app.use("/api/users", userRoutes);
+app.use("/api/items", itemRoutes);
 
 
 

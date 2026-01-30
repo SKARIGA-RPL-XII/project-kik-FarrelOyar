@@ -661,28 +661,50 @@ export const deleteDoctor = async (req, res) => {
 
 export const getDoctors = async (req, res) => {
   try {
-    const { search = "", page = 1, limit = 10 } = req.body;
+    let { search = "", page = 1, limit } = req.body;
+
+    page = Number(page) || 1;
+    limit = Number(limit);
 
     const offset = (page - 1) * limit;
     const searchTerm = `%${search}%`;
 
-    const query = `
+    // ✅ Pakai let
+    let query = `
       SELECT 
-        u.id AS user_id, u.name, u.gender, u.phone_number AS phone, u.email, u.date_of_birth AS birth, u.address,
-        c.id AS contract_id, c.action_commission, c.total_commission, c.is_active AS contract_active
+        u.id AS user_id,
+        u.name,
+        u.gender,
+        u.phone_number AS phone,
+        u.email,
+        u.date_of_birth AS birth,
+        u.address,
+
+        c.id AS contract_id,
+        c.action_commission,
+        c.total_commission,
+        c.is_active AS contract_active
+
       FROM users u
       LEFT JOIN contract_doctors c ON u.id = c.user_id
-      WHERE u.role_id = 3 AND u.name LIKE ?
+
+      WHERE u.role_id = 3
+        AND u.name LIKE ?
+
       ORDER BY u.id ASC
-      LIMIT ? OFFSET ?
     `;
 
-    const [rows] = await db.query(query, [
-      searchTerm,
-      parseInt(limit),
-      parseInt(offset),
-    ]);
+    const params = [searchTerm];
 
+    // ✅ Tambah LIMIT kalau perlu
+    if (!isNaN(limit) && limit > 0) {
+      query += ` LIMIT ? OFFSET ?`;
+      params.push(limit, offset);
+    }
+
+    const [rows] = await db.query(query, params);
+
+    // Format response
     const data = rows.map((row) => ({
       id: row.user_id,
       name: row.name,
@@ -691,6 +713,7 @@ export const getDoctors = async (req, res) => {
       email: row.email,
       birth: row.birth,
       address: row.address,
+
       contract: row.contract_id
         ? {
             id: row.contract_id,
@@ -701,10 +724,17 @@ export const getDoctors = async (req, res) => {
         : null,
     }));
 
+    // Total count
     const [totalRows] = await db.query(
-      `SELECT COUNT(*) AS total FROM users WHERE role_id = 3 AND name LIKE ?`,
+      `
+      SELECT COUNT(*) AS total
+      FROM users
+      WHERE role_id = 3
+        AND name LIKE ?
+      `,
       [searchTerm],
     );
+
     const total = totalRows[0].total;
 
     return res.status(200).json({
@@ -712,13 +742,14 @@ export const getDoctors = async (req, res) => {
       data,
       pagination: {
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / limit),
+        page,
+        limit: !isNaN(limit) && limit > 0 ? limit : total,
+        totalPages: !isNaN(limit) && limit > 0 ? Math.ceil(total / limit) : 1,
       },
     });
   } catch (error) {
-    console.error("Get Doctors Error:", error.sqlMessage || error.message);
+    console.error("Get Doctors Error:", error);
+
     return res.status(500).json({
       success: false,
       message: error.sqlMessage || error.message || "Terjadi kesalahan server",
@@ -1003,25 +1034,39 @@ export const deleteAdmin = async (req, res) => {
 
 export const getAdmin = async (req, res) => {
   try {
-    const { search = "", page = 1, limit = 10 } = req.body;
+    let { search = "", page = 1, limit } = req.body;
+
+    page = Number(page) || 1;
+    limit = Number(limit);
 
     const offset = (page - 1) * limit;
     const searchTerm = `%${search}%`;
 
-    const query = `
+    // ✅ Pakai let (bukan const)
+    let query = `
       SELECT 
-        u.id AS user_id, u.name, u.gender, u.phone_number AS phone, u.email, u.date_of_birth AS birth, u.address
+        u.id AS user_id,
+        u.name,
+        u.gender,
+        u.phone_number AS phone,
+        u.email,
+        u.date_of_birth AS birth,
+        u.address
       FROM users u
-      WHERE u.role_id = 2 AND u.name LIKE ?
+      WHERE u.role_id = 2
+        AND u.name LIKE ?
       ORDER BY u.id ASC
-      LIMIT ? OFFSET ?
     `;
 
-    const [rows] = await db.query(query, [
-      searchTerm,
-      parseInt(limit),
-      parseInt(offset),
-    ]);
+    const params = [searchTerm];
+
+    // ✅ Tambah LIMIT hanya kalau limit valid
+    if (!isNaN(limit) && limit > 0) {
+      query += ` LIMIT ? OFFSET ?`;
+      params.push(limit, offset);
+    }
+
+    const [rows] = await db.query(query, params);
 
     const data = rows.map((row) => ({
       id: row.user_id,
@@ -1033,10 +1078,15 @@ export const getAdmin = async (req, res) => {
       address: row.address,
     }));
 
+    // Total data
     const [totalRows] = await db.query(
-      `SELECT COUNT(*) AS total FROM users WHERE role_id = 2 AND name LIKE ?`,
+      `SELECT COUNT(*) AS total
+       FROM users
+       WHERE role_id = 2
+         AND name LIKE ?`,
       [searchTerm],
     );
+
     const total = totalRows[0].total;
 
     return res.status(200).json({
@@ -1044,13 +1094,14 @@ export const getAdmin = async (req, res) => {
       data,
       pagination: {
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / limit),
+        page,
+        limit: !isNaN(limit) && limit > 0 ? limit : total,
+        totalPages: !isNaN(limit) && limit > 0 ? Math.ceil(total / limit) : 1,
       },
     });
   } catch (error) {
-    console.error("Get Admin Error:", error.sqlMessage || error.message);
+    console.error("Get Admin Error:", error);
+
     return res.status(500).json({
       success: false,
       message: error.sqlMessage || error.message || "Terjadi kesalahan server",
