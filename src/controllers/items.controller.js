@@ -150,3 +150,112 @@ export const editItem = async (req, res) => {
     });
   }
 };
+
+export const deleteItem = async (req, res) => {
+  try {
+    const { id } = req.body || {};
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "ID wajib diisi",
+      });
+    }
+
+    const [patient] = await db.query("SELECT id FROM m_items WHERE id = ?", [
+      id,
+    ]);
+
+    if (patient.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Item tidak ditemukan",
+      });
+    }
+
+    await db.query("DELETE FROM m_items WHERE id = ?", [id]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Items berhasil dihapus",
+      data: {
+        id,
+      },
+    });
+  } catch (error) {
+    console.error("Delete Items Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Terjadi kesalahan server",
+    });
+  }
+};
+
+export const getItems = async (req, res) => {
+  try {
+    let { search = "", page = 1, limit } = req.body;
+
+    page = Number(page) || 1;
+    limit = Number(limit);
+
+    const offset = (page - 1) * limit;
+    const searchTerm = `%${search}%`;
+
+    let query = `
+      SELECT 
+        id,
+        name,
+        price,
+        stock
+        FROM m_items 
+        WHERE name LIKE ?
+        ORDER BY id ASC
+    `;
+
+    const params = [searchTerm];
+
+    // ✅ Tambah LIMIT hanya kalau limit valid
+    if (!isNaN(limit) && limit > 0) {
+      query += ` LIMIT ? OFFSET ?`;
+      params.push(limit, offset);
+    }
+
+    const [rows] = await db.query(query, params);
+
+    const data = rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      price: row.price,
+      stock: row.stock,
+    }));
+
+    // Total data
+    const [totalRows] = await db.query(
+      `SELECT COUNT(*) AS total
+       FROM m_items
+       WHERE name LIKE ?`,
+      [searchTerm],
+    );
+
+    const total = totalRows[0].total;
+
+    return res.status(200).json({
+      success: true,
+      data,
+      pagination: {
+        total,
+        page,
+        limit: !isNaN(limit) && limit > 0 ? limit : total,
+        totalPages: !isNaN(limit) && limit > 0 ? Math.ceil(total / limit) : 1,
+      },
+    });
+  } catch (error) {
+    console.error("Get Items Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.sqlMessage || error.message || "Terjadi kesalahan server",
+    });
+  }
+};
