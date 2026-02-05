@@ -8,6 +8,7 @@ import isString from "lodash/isString";
 import axios from "utils/axios";
 import { isTokenValid, setSession } from "utils/jwt";
 import { AuthContext } from "./context";
+import { toast } from "sonner";
 
 // ----------------------------------------------------------------------
 
@@ -83,7 +84,7 @@ export function AuthProvider({ children }) {
         if (authToken && isTokenValid(authToken)) {
           setSession(authToken);
 
-          const response = await axios.get("/user/profile");
+          const response = await axios.get("api/user/profile");
           const { user } = response.data;
 
           dispatch({
@@ -123,32 +124,39 @@ export function AuthProvider({ children }) {
     });
 
     try {
-      const response = await axios.post("/login", {
-        username,
-        password,
+      const response = await axios.post("/api/login", {
+        email: username,
+        password: password,
       });
 
-      const { authToken, user } = response.data;
+      if (response.data.success) {
+        const { token, user } = response.data; // ✅ sesuai BE
 
-      if (!isString(authToken) && !isObject(user)) {
-        throw new Error("Response is not vallid");
+        if (!isString(token) || !isObject(user)) {
+          throw new Error("Response is not valid");
+        }
+
+        setSession(token); // ✅ sekarang kepanggil
+
+        dispatch({
+          type: "LOGIN_SUCCESS",
+          payload: {
+            user,
+          },
+        });
+        toast.success(response.data.message);
+      } else {
+        toast.error(response.data.message);
       }
-
-      setSession(authToken);
-
-      dispatch({
-        type: "LOGIN_SUCCESS",
-        payload: {
-          user,
-        },
-      });
     } catch (err) {
+      const message = err?.message || "Login gagal";
+
       dispatch({
         type: "LOGIN_ERROR",
-        payload: {
-          errorMessage: err,
-        },
+        payload: { errorMessage: message },
       });
+
+      toast.error(message);
     }
   };
 
