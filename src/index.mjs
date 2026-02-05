@@ -1,10 +1,22 @@
 import express from "express";
 import userRoutes from "./routes/users.routes.js";
 import itemRoutes from "./routes/items.routes.js";
+import authRoutes from "./routes/auth.routes.js";
 import db from "./config/db.js";
+import cors from "cors";
+
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+
+
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 // middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -13,6 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 // routes
 app.use("/api/users", userRoutes);
 app.use("/api/items", itemRoutes);
+app.use("/api",authRoutes );
 
 
 
@@ -39,6 +52,7 @@ app.get("/test-db", async (req, res) => {
     });
   }
 });
+
 
 
 app.listen(PORT, () => {
