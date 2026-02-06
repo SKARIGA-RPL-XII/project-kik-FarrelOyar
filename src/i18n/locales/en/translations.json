@@ -4,6 +4,10 @@
       "dashboards": "Dashboards",
       "home": "Home"
     },
+    "patients": {
+      "patients": "Patients",
+      "list": "List"
+    },
     "settings": {
       "settings": "Settings",
       "general": "General",

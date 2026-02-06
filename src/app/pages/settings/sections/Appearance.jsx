@@ -75,7 +75,7 @@ export default function Appearance() {
   }, [theme.notification?.isExpanded]);
 
   return (
-    <div className="w-full max-w-3xl 2xl:max-w-5xl">
+    <div className="w-full mx-8 max-w-3xl 2xl:max-w-5xl">
       <h5 className="text-lg font-medium text-gray-800 dark:text-dark-50">
         Appearance
       </h5>

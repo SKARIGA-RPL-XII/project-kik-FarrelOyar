@@ -2,9 +2,10 @@
 import { Navigate } from "react-router";
 
 // Local Imports
-import { AppLayout } from "app/layouts/AppLayout";
+// import { AppLayout } from "app/layouts/AppLayout";
 import { DynamicLayout } from "app/layouts/DynamicLayout";
 import AuthGuard from "middleware/AuthGuard";
+import { PatientProvider } from "app/pages/patient/Provider";
 
 // ----------------------------------------------------------------------
 
@@ -39,13 +40,11 @@ const protectedRoutes = {
     },
     // The app layout supports only the main layout. Avoid using it for other layouts.
     {
-      Component: AppLayout,
+      Component: DynamicLayout,
       children: [
         {
           path: "settings",
-          lazy: async () => ({
-            Component: (await import("app/pages/settings/Layout")).default,
-          }),
+
           children: [
             {
               index: true,
@@ -65,6 +64,36 @@ const protectedRoutes = {
                   await import("app/pages/settings/sections/Appearance")
                 ).default,
               }),
+            },
+          ],
+        },
+      ],
+    },
+
+    {
+      Component: DynamicLayout,
+      children: [
+        {
+          path: "patients",
+          children: [
+            {
+              index: true,
+              element: <Navigate to="/patients/list" />,
+            },
+            {
+              path: "list",
+              lazy: async () => {
+                const { default: List } =
+                  await import("app/pages/patient/list");
+
+                return {
+                  Component: () => (
+                    <PatientProvider>
+                      <List />
+                    </PatientProvider>
+                  ),
+                };
+              },
             },
           ],
         },
