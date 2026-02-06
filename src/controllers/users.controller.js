@@ -292,12 +292,22 @@ export const getPatients = async (req, res) => {
 
     const [rows] = await db.query(
       `
-      SELECT *
-      FROM patients
-      WHERE name LIKE ?
-      ORDER BY id ASC
-      LIMIT ? OFFSET ?
-      `,
+  SELECT 
+    id,
+    name,
+    gender,
+    phone_number,
+    email,
+    address,
+    DATE_FORMAT(date_of_birth, '%Y-%m-%d') AS date_of_birth,
+    created_at,
+    updated_at
+  FROM patients
+  WHERE name LIKE ?
+  ORDER BY id ASC
+  LIMIT ? OFFSET ?
+  `,
+
       [keyword, limit, offset],
     );
 
@@ -677,7 +687,9 @@ export const getDoctors = async (req, res) => {
         u.gender,
         u.phone_number AS phone,
         u.email,
-        u.date_of_birth AS birth,
+
+        DATE_FORMAT(u.date_of_birth, '%Y-%m-%d') AS birth,
+
         u.address,
 
         c.id AS contract_id,
@@ -740,6 +752,7 @@ export const getDoctors = async (req, res) => {
     return res.status(200).json({
       success: true,
       data,
+      message: "Data Doctors berhasil diambil",
       pagination: {
         total,
         page,
