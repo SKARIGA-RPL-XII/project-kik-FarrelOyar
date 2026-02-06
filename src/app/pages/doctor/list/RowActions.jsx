@@ -12,6 +12,7 @@ import {
 } from "@headlessui/react";
 import {
   EllipsisHorizontalIcon,
+  LockClosedIcon,
   PencilIcon,
   TrashIcon,
   XMarkIcon,
@@ -23,7 +24,7 @@ import PropTypes from "prop-types";
 // Local Imports
 import { ConfirmModal } from "components/shared/ConfirmModal";
 import { Button, Input, Select } from "components/ui";
-import { usePatientContext } from "../context";
+import { useDoctorContext } from "../context";
 import { toast } from "sonner";
 import { useDisclosure } from "hooks";
 import { DatePicker } from "components/shared/form/Datepicker";
@@ -46,7 +47,9 @@ export function RowActions({ row, table }) {
   const [deleteSuccess, setDeleteSuccess] = useState(false);
   const [deleteError, setDeleteError] = useState(false);
 
-  const { deletePatient, editPatient } = usePatientContext();
+  const { deleteDoctor, editDoctor, resetPasswordDoctor } = useDoctorContext();
+
+  const [password, setPassword] = useState("");
 
   const closeModal = () => {
     setDeleteModalOpen(false);
@@ -62,7 +65,7 @@ export function RowActions({ row, table }) {
     try {
       setConfirmDeleteLoading(true);
 
-      const response = await deletePatient({
+      const response = await deleteDoctor({
         id: row.original.id,
       });
 
@@ -71,7 +74,7 @@ export function RowActions({ row, table }) {
         table.options.meta?.reloadTable();
         setDeleteSuccess(true);
       } else {
-        toast.error(response?.message || "Gagal menghapus patient");
+        toast.error(response?.message || "Gagal menghapus Doctor");
       }
     } catch (err) {
       toast.error(err.message || "Terjadi kesalahan");
@@ -84,16 +87,21 @@ export function RowActions({ row, table }) {
 
   const state = deleteError ? "error" : deleteSuccess ? "success" : "pending";
 
-  const [isOpen, { open, close }] = useDisclosure(false);
+  const [isOpenEdit, { open:openedit, close:closeedit }] = useDisclosure(false);
+  const [isOpenPassword, { open: openpassword, close: closepassword }] =
+    useDisclosure(false);
 
   const saveRef = useRef(null);
+  const saveRefPassword = useRef(null);
+
   const [form, setForm] = useState({
     name: row.original.name,
     gender: row.original.gender,
-    phone: row.original.phone_number,
+    phone: row.original.phone,
     email: row.original.email,
-    birth: row.original.date_of_birth,
+    birth: row.original.birth,
     address: row.original.address,
+    action_commission: row.original.contract.action_commission,
   });
 
   const handleChange = (key, value) => {
@@ -126,45 +134,73 @@ export function RowActions({ row, table }) {
       id: data.id,
       name: data.name,
       gender: data.gender,
-      phone: data.phone_number,
+      phone: data.phone,
       email: data.email,
-      birth: formatToGMT7(data.date_of_birth),
+      birth: formatToGMT7(data.birth),
       address: data.address,
+      action_commission: data.contract.action_commission,
     });
 
-    open();
+    openedit();
   };
 
   const handleSave = async () => {
-  try {
-    if (!form.name || !form.phone) {
-      toast.error("Name dan Phone wajib diisi");
-      return;
+    try {
+      if (!form.name || !form.phone) {
+        toast.error("Name dan Phone wajib diisi");
+        return;
+      }
+
+      const payload = {
+        id: row.original.id,
+        name: form.name,
+        gender: form.gender,
+        phone: form.phone,
+        email: form.email,
+        birth: form.birth,
+        address: form.address,
+        action_commission: form.action_commission,
+      };
+
+      const res = await editDoctor(payload);
+
+      if (res?.success) {
+        toast.success("Doctor berhasil diupdate");
+        table.options.meta?.reloadTable();
+        closeedit();
+      } else {
+        toast.error(res?.message || "Gagal update data");
+      }
+    } catch (err) {
+      toast.error(err.message || "Terjadi kesalahan");
     }
+  };
 
-    const payload = {
-      id: row.original.id,
-      name: form.name,
-      gender: form.gender,
-      phone: form.phone,
-      email: form.email,
-      birth: form.birth,
-      address: form.address,
-    };
+  const handleResetPassword = async () => {
+    try {
+      if (!password) {
+        toast.error("Password wajib diisi");
+        return;
+      }
 
-    const res = await editPatient(payload);
+      const payload = {
+        id: row.original.id,
+        password: password,
+      };
 
-    if (res?.success) {
-      toast.success("Patient berhasil diupdate");
-      table.options.meta?.reloadTable();
-      close();
-    } else {
-      toast.error(res?.message || "Gagal update data");
+      const res = await resetPasswordDoctor(payload);
+
+      if (res?.success) {
+        toast.success("Password berhasil direset");
+        setPassword("");
+        closepassword();
+      } else {
+        toast.error(res?.message || "Gagal reset password");
+      }
+    } catch (err) {
+      toast.error(err.message || "Terjadi kesalahan");
     }
-  } catch (err) {
-    toast.error(err.message || "Terjadi kesalahan");
-  }
-};
+  };
 
   return (
     <>
@@ -207,6 +243,21 @@ export function RowActions({ row, table }) {
             <MenuItem>
               {({ focus }) => (
                 <button
+                  onClick={openpassword}
+                  className={clsx(
+                    "flex h-9 w-full items-center space-x-3 px-3 tracking-wide outline-hidden transition-colors",
+                    focus &&
+                      "dark:bg-dark-600 dark:text-dark-100 bg-gray-100 text-gray-800",
+                  )}
+                >
+                  <LockClosedIcon className="size-4.5 stroke-1" />
+                  <span>Reset Password</span>
+                </button>
+              )}
+            </MenuItem>
+            <MenuItem>
+              {({ focus }) => (
+                <button
                   onClick={openModal}
                   className={clsx(
                     "this:error text-this dark:text-this-light flex h-9 w-full items-center space-x-3 px-3 tracking-wide outline-hidden transition-colors",
@@ -231,11 +282,11 @@ export function RowActions({ row, table }) {
         state={state}
       />
 
-      <Transition appear show={isOpen} as={Fragment}>
+      <Transition appear show={isOpenEdit} as={Fragment}>
         <Dialog
           as="div"
           className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden px-4 py-6 sm:px-5"
-          onClose={close}
+          onClose={closeedit}
           initialFocus={saveRef}
         >
           <TransitionChild
@@ -265,10 +316,10 @@ export function RowActions({ row, table }) {
                   as="h3"
                   className="dark:text-dark-100 text-base font-medium text-gray-800"
                 >
-                  Edit Pin
+                  Edit Doctor
                 </DialogTitle>
                 <Button
-                  onClick={close}
+                  onClick={closeedit}
                   variant="flat"
                   isIcon
                   className="size-7 rounded-full ltr:-mr-1.5 rtl:-ml-1.5"
@@ -334,10 +385,20 @@ export function RowActions({ row, table }) {
                     onChange={(e) => handleChange("address", e.target.value)}
                   />
                 </div>
-
+                <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-1">
+                  <Input
+                    type="number"
+                    label="Action Commission"
+                    value={form.action_commission}
+                    placeholder="Masukkan Action Commission"
+                    onChange={(e) =>
+                      handleChange("action_commission", e.target.value)
+                    }
+                  />
+                </div>
                 <div className="mt-4 space-x-3 text-end">
                   <Button
-                    onClick={close}
+                    onClick={closeedit}
                     variant="outlined"
                     className="min-w-[7rem] rounded-full"
                   >
@@ -350,6 +411,87 @@ export function RowActions({ row, table }) {
                     className="min-w-[7rem] rounded-full"
                   >
                     Save
+                  </Button>
+                </div>
+              </div>
+            </DialogPanel>
+          </TransitionChild>
+        </Dialog>
+      </Transition>
+
+      <Transition appear show={isOpenPassword} as={Fragment}>
+        <Dialog
+          as="div"
+          className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden px-4 py-6 sm:px-5"
+          onClose={closepassword}
+          initialFocus={saveRefPassword}
+        >
+          <TransitionChild
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="absolute inset-0 bg-gray-900/50 backdrop-blur transition-opacity dark:bg-black/30" />
+          </TransitionChild>
+
+          <TransitionChild
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0 scale-95"
+            enterTo="opacity-100 scale-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100 scale-100"
+            leaveTo="opacity-0 scale-95"
+          >
+            <DialogPanel className="dark:bg-dark-700 relative flex w-full max-w-lg origin-top flex-col overflow-hidden rounded-lg bg-white transition-all duration-300">
+              <div className="dark:bg-dark-800 flex items-center justify-between rounded-t-lg bg-gray-200 px-4 py-3 sm:px-5">
+                <DialogTitle
+                  as="h3"
+                  className="dark:text-dark-100 text-base font-medium text-gray-800"
+                >
+                  Reset Password
+                </DialogTitle>
+                <Button
+                  onClick={closepassword}
+                  variant="flat"
+                  isIcon
+                  className="size-7 rounded-full ltr:-mr-1.5 rtl:-ml-1.5"
+                >
+                  <XMarkIcon className="size-4.5" />
+                </Button>
+              </div>
+
+              <div className="flex flex-col overflow-y-auto px-4 py-4 sm:px-5">
+                <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-1">
+                  <Input
+                    type="password"
+                    label="Password"
+                    value={password}
+                    placeholder="Masukkan Password Baru"
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+                <div className="mt-4 space-x-3 text-end">
+                  <Button
+                    onClick={closepassword}
+                    variant="outlined"
+                    type="button"
+                    className="min-w-[7rem] rounded-full"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleResetPassword}
+                    color="primary"
+                    type="button"
+                    ref={saveRefPassword}
+                    className="min-w-[7rem] rounded-full none"
+                  >
+                    Reset
                   </Button>
                 </div>
               </div>

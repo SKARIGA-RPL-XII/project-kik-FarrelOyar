@@ -54,7 +54,7 @@ export const columns = [
     label: "Email",
     cell: CopyableCell,
   }),
-  columnHelper.accessor((row) => row.phone_number, {
+  columnHelper.accessor((row) => row.phone, {
     id: "phonenumber",
     header: "phone number",
     label: "phone number",
@@ -72,10 +72,16 @@ export const columns = [
     label: "Address",
     cell: CopyableCell,
   }),
-  columnHelper.accessor((row) => row.date_of_birth, {
+  columnHelper.accessor((row) => row.birth, {
     id: "date_of_birth",
     header: "date of birth",
     label: "date of birth",
+    cell: CopyableCell,
+  }),
+  columnHelper.accessor((row) => `${row.contract.action_commission}%`, {
+    id: "actions_commission",
+    header: "Action commission",
+    label: "Action commission",
     cell: CopyableCell,
   }),
 

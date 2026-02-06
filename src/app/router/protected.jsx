@@ -6,6 +6,7 @@ import { Navigate } from "react-router";
 import { DynamicLayout } from "app/layouts/DynamicLayout";
 import AuthGuard from "middleware/AuthGuard";
 import { PatientProvider } from "app/pages/patient/Provider";
+import { DoctorProvider } from "app/pages/doctor/Provider";
 
 // ----------------------------------------------------------------------
 
@@ -91,6 +92,60 @@ const protectedRoutes = {
                     <PatientProvider>
                       <List />
                     </PatientProvider>
+                  ),
+                };
+              },
+            },
+            {
+              path: "add",
+              lazy: async () => {
+                const { default: AddPatient } =
+                  await import("app/pages/patient/add");
+
+                return {
+                  Component: () => (
+                    <PatientProvider>
+                      <AddPatient />
+                    </PatientProvider>
+                  ),
+                };
+              },
+            },
+          ],
+        },
+        {
+          path: "doctors",
+          children: [
+            {
+              index: true,
+              element: <Navigate to="/doctors/list" />,
+            },
+            {
+              path: "list",
+              lazy: async () => {
+                const { default: List } =
+                  await import("app/pages/doctor/list");
+
+                return {
+                  Component: () => (
+                    <DoctorProvider>
+                      <List />
+                    </DoctorProvider>
+                  ),
+                };
+              },
+            },
+            {
+              path: "add",
+              lazy: async () => {
+                const { default: AddPatient } =
+                  await import("app/pages/doctor/add");
+
+                return {
+                  Component: () => (
+                    <DoctorProvider>
+                      <AddPatient />
+                    </DoctorProvider>
                   ),
                 };
               },

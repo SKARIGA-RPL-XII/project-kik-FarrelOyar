@@ -24,7 +24,7 @@ import { PaginationSection } from "./paginationSection";
 import { SelectedRowsActions } from "./SelectedRowsActions";
 import { ListView } from "./ListView";
 // import { GridView } from "./GridView";
-import { usePatientContext } from "../context";
+import { useDoctorContext } from "../context";
 
 // ----------------------------------------------------------------------
 
@@ -41,13 +41,13 @@ export default function List() {
 
   // console.log(pa);
 
-  const { getAllPatients } = usePatientContext();
+  const { getAllDoctors } = useDoctorContext();
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
 
-      const res = await getAllPatients({
+      const res = await getAllDoctors({
         page: pagination.page,
         limit: pagination.limit,
         search: globalFilter,
@@ -58,8 +58,8 @@ export default function List() {
         setPagination({
           page: res.data.pagination.page,
           limit: res.data.pagination.limit,
-          total: res.data.pagination.totalData, // mapping
-          totalPages: res.data.pagination.totalPage, // mapping
+          total: res.data.pagination.total, // mapping
+          totalPages: res.data.pagination.totalPages, // mapping
         });
       }
       setTimeout(() => {
@@ -114,7 +114,7 @@ export default function List() {
       pagination,
       reloadTable: async () => {
         setLoading(true);
-        const res = await getAllPatients({
+        const res = await getAllDoctors({
           page: pagination.page,
           limit: pagination.limit,
           search: globalFilter,
@@ -124,8 +124,8 @@ export default function List() {
           setPagination({
             page: res.data.pagination.page,
             limit: res.data.pagination.limit,
-            total: res.data.pagination.totalData, // mapping
-            totalPages: res.data.pagination.totalPage, // mapping
+            total: res.data.pagination.total, // mapping
+            totalPages: res.data.pagination.totalPages, // mapping
           });
         }
         setLoading(false);

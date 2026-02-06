@@ -1,14 +1,14 @@
 import PropTypes from "prop-types";
 import axios from "utils/axios";
 import { toast } from "sonner";
-import { PatientContext } from "./context";
+import { DoctorContext } from "./context";
 // import { doctors } from "./list/data";
 
-export function PatientProvider({ children }) {
-  const createPatient = async (payload) => {
+export function DoctorProvider({ children }) {
+  const createDoctor = async (payload) => {
     try {
       // console.log("Payload:",payload);
-      const response = await axios.post("/api/users/patient/create", payload);
+      const response = await axios.post("/api/users/doctor/create", payload);
 
       // Success → toast success
       toast.success(response.data.message || "");
@@ -27,10 +27,10 @@ export function PatientProvider({ children }) {
       return { success: false, message: errorData || err.message };
     }
   };
-  const getAllPatients = async (payload) => {
+  const getAllDoctors = async (payload) => {
     try {
       // console.log("Payload:",payload);
-      const response = await axios.post("/api/users/patient/get", payload);
+      const response = await axios.post("/api/users/doctor/get", payload);
 
       // Success → toast success
       toast.success(response.data.message || "");
@@ -49,10 +49,10 @@ export function PatientProvider({ children }) {
       return { success: false, message: errorData || err.message };
     }
   };
-  const deletePatient = async (payload) => {
+  const deleteDoctor = async (payload) => {
     try {
       // console.log("Payload:",payload);
-      const response = await axios.post("/api/users/patient/delete", payload);
+      const response = await axios.post("/api/users/doctor/delete", payload);
 
       // Success → toast success
       toast.success(response.data.message || "");
@@ -71,10 +71,32 @@ export function PatientProvider({ children }) {
       return { success: false, message: errorData || err.message };
     }
   };
-  const editPatient = async (payload) => {
+  const editDoctor = async (payload) => {
     try {
       // console.log("Payload:",payload);
-      const response = await axios.post("/api/users/patient/edit", payload);
+      const response = await axios.post("/api/users/doctor/edit", payload);
+
+      // Success → toast success
+      toast.success(response.data.message || "");
+      return { success: true, data: response.data };
+    } catch (err) {
+      const errorData = err;
+
+      if (Array.isArray(errorData?.errors)) {
+        // kalau `errors` berupa array
+        errorData.errors.forEach((e) => toast.error(e));
+      } else {
+        // fallback single error
+        toast.error(errorData?.error || errorData?.message || err.message);
+      }
+
+      return { success: false, message: errorData || err.message };
+    }
+  };
+  const resetPasswordDoctor = async (payload) => {
+    try {
+      // console.log("Payload:",payload);
+      const response = await axios.post("/api/users/doctor/resetpassword", payload);
 
       // Success → toast success
       toast.success(response.data.message || "");
@@ -95,15 +117,16 @@ export function PatientProvider({ children }) {
   };
 
   const api = {
-    getAllPatients,
-    createPatient,
-    deletePatient,
-    editPatient,
+    getAllDoctors,
+    createDoctor,
+    deleteDoctor,
+    editDoctor,
+    resetPasswordDoctor
   };
 
-  return <PatientContext value={api}>{children}</PatientContext>;
+  return <DoctorContext value={api}>{children}</DoctorContext>;
 }
 
-PatientProvider.propTypes = {
+DoctorProvider.propTypes = {
   children: PropTypes.node,
 };

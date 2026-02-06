@@ -6,7 +6,13 @@
     },
     "patients": {
       "patients": "Patients",
-      "list": "List"
+      "list": "List",
+      "add": "Add Patient"
+    },
+    "doctors": {
+      "doctors": "Doctors",
+      "list": "List",
+      "add": "Add Doctor"
     },
     "settings": {
       "settings": "Settings",
