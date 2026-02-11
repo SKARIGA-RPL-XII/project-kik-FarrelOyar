@@ -2,6 +2,8 @@ import express from "express";
 import userRoutes from "./routes/users.routes.js";
 import itemRoutes from "./routes/items.routes.js";
 import authRoutes from "./routes/auth.routes.js";
+import appointmentsRoutes from "./routes/appointments.routes.js";
+import invoicesRoutes from "./routes/invoices.routes.js";
 import db from "./config/db.js";
 import cors from "cors";
 
@@ -13,7 +15,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: "http://localhost:5174",
     credentials: true,
   })
 );
@@ -26,6 +28,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/users", userRoutes);
 app.use("/api/items", itemRoutes);
 app.use("/api",authRoutes );
+app.use("/api/appointments",appointmentsRoutes );
+app.use("/api/invoices",invoicesRoutes );
 
 
 
