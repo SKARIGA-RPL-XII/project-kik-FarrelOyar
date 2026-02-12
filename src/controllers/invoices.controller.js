@@ -1,6 +1,5 @@
 import db from "../config/db.js";
 
-// ================= HELPER =================
 const generateInvoiceCode = () => {
   const random = Math.floor(10000000 + Math.random() * 90000000);
   return `INV ${random}`;
@@ -12,16 +11,16 @@ export const createInvoice = async (req, res) => {
     const {
       patient_id,
       doctor_id,
+      appointment_id,
       discount = 0,
       obat = [],
       medical_records = [],
     } = req.body;
 
-    // ================= BASIC VALIDATION =================
-    if (!patient_id || !doctor_id) {
+    if (!patient_id || !doctor_id || !appointment_id) {
       return res.status(400).json({
         success: false,
-        message: "patient_id dan doctor_id wajib diisi",
+        message: "semua field wajib diisi",
       });
     }
 
@@ -46,7 +45,6 @@ export const createInvoice = async (req, res) => {
       });
     }
 
-    // ================= ROLE VALIDATION =================
     const [[patient]] = await connection.query(
       "SELECT id FROM patients WHERE id = ?",
       [patient_id],
@@ -61,7 +59,6 @@ export const createInvoice = async (req, res) => {
 
     await connection.beginTransaction();
 
-    // ================= INVOICE CODE =================
     let invoiceCode;
     while (true) {
       invoiceCode = generateInvoiceCode();
@@ -72,11 +69,9 @@ export const createInvoice = async (req, res) => {
       if (!exists) break;
     }
 
-    // ================= HITUNG TOTAL =================
     let totalObat = 0;
     let totalMedical = 0;
 
-    // ===== OBAT =====
     for (const item of obat) {
       if (!item.obat_id || !item.qty || item.qty <= 0) {
         throw new Error("obat_id dan qty wajib & qty > 0");
@@ -94,7 +89,6 @@ export const createInvoice = async (req, res) => {
       totalObat += obatData.price * item.qty;
     }
 
-    // ===== MEDICAL RECORD =====
     for (const record of medical_records) {
       if (!record.diagnosis || !record.price || record.price <= 0) {
         throw new Error("diagnosis dan price wajib & price > 0");
@@ -105,7 +99,6 @@ export const createInvoice = async (req, res) => {
 
     const totalInvoice = totalObat + totalMedical;
 
-    // ================= INSERT INVOICE =================
     const [invoiceResult] = await connection.query(
       `
       INSERT INTO invoices
@@ -148,7 +141,6 @@ export const createInvoice = async (req, res) => {
         [invoiceId, item.obat_id, item.qty, total],
       );
 
-      // update stock
       await connection.query(
         `
         UPDATE m_items
@@ -159,7 +151,6 @@ export const createInvoice = async (req, res) => {
       );
     }
 
-    // ================= INSERT MEDICAL RECORD =================
     for (const record of medical_records) {
       await connection.query(
         `
@@ -184,6 +175,10 @@ export const createInvoice = async (req, res) => {
         ],
       );
     }
+
+    await connection.query("DELETE FROM appointments WHERE id = ?", [
+      appointment_id,
+    ]);
 
     await connection.commit();
 
@@ -223,7 +218,6 @@ export const payInvoice = async (req, res) => {
 
     await connection.beginTransaction();
 
-    // ================= GET INVOICE =================
     const [[invoice]] = await connection.query(
       `
       SELECT invoice_id, doctor_id, payment_status
@@ -245,7 +239,6 @@ export const payInvoice = async (req, res) => {
       throw new Error("Invoice tidak dapat dibayar");
     }
 
-    // ================= GET TOTAL TINDAKAN =================
     const [[medicalTotal]] = await connection.query(
       `
       SELECT COALESCE(SUM(price), 0) AS total
@@ -255,7 +248,6 @@ export const payInvoice = async (req, res) => {
       [invoice_id],
     );
 
-    // ================= GET CONTRACT DOCTOR =================
     const [[contract]] = await connection.query(
       `
       SELECT id, action_commission, total_commission
@@ -272,7 +264,6 @@ export const payInvoice = async (req, res) => {
 
     const commission = medicalTotal.total * (contract.action_commission / 100);
 
-    // ================= UPDATE CONTRACT =================
     await connection.query(
       `
       UPDATE contract_doctors
@@ -282,7 +273,6 @@ export const payInvoice = async (req, res) => {
       [commission, contract.id],
     );
 
-    // ================= UPDATE INVOICE =================
     await connection.query(
       `
       UPDATE invoices
@@ -327,7 +317,6 @@ export const getInvoices = async (req, res) => {
     const offset = (page - 1) * limit;
     const searchQuery = `%${search}%`;
 
-    // ================= MAIN INVOICE =================
     const [invoices] = await db.query(
       `
       SELECT
@@ -336,6 +325,7 @@ export const getInvoices = async (req, res) => {
         i.total,
         i.payment_status,
         i.created_at,
+        i.discount,
 
         p.id AS patient_id,
         p.name AS patient_name,
@@ -354,7 +344,6 @@ export const getInvoices = async (req, res) => {
       [searchQuery, limit, offset],
     );
 
-    // ================= COUNT =================
     const [[count]] = await db.query(
       `
       SELECT COUNT(*) AS total
@@ -364,9 +353,7 @@ export const getInvoices = async (req, res) => {
       [searchQuery],
     );
 
-    // ================= CHILD DATA =================
     for (const invoice of invoices) {
-      // OBAT
       const [obat] = await db.query(
         `
         SELECT
@@ -382,7 +369,6 @@ export const getInvoices = async (req, res) => {
         [invoice.invoice_id],
       );
 
-      // MEDICAL RECORDS
       const [medical] = await db.query(
         `
         SELECT
@@ -411,7 +397,6 @@ export const getInvoices = async (req, res) => {
       invoice.obat = obat;
       invoice.medical_records = medical;
 
-      // bersihin field mentah
       delete invoice.patient_id;
       delete invoice.patient_name;
       delete invoice.patient_gender;
