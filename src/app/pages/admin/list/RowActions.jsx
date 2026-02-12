@@ -24,7 +24,7 @@ import PropTypes from "prop-types";
 // Local Imports
 import { ConfirmModal } from "components/shared/ConfirmModal";
 import { Button, Input, Select } from "components/ui";
-import { useDoctorContext } from "../context";
+import { useAdminContext } from "../context";
 import { toast } from "sonner";
 import { useDisclosure } from "hooks";
 import { DatePicker } from "components/shared/form/Datepicker";
@@ -47,7 +47,7 @@ export function RowActions({ row, table }) {
   const [deleteSuccess, setDeleteSuccess] = useState(false);
   const [deleteError, setDeleteError] = useState(false);
 
-  const { deleteDoctor, editDoctor, resetPasswordDoctor } = useDoctorContext();
+  const { deleteDoctor, editDoctor, resetPasswordDoctor } = useAdminContext();
 
   const [password, setPassword] = useState("");
 
@@ -102,7 +102,6 @@ export function RowActions({ row, table }) {
     email: row.original.email,
     birth: row.original.birth,
     address: row.original.address,
-    action_commission: row.original.contract.action_commission,
   });
 
   const handleChange = (key, value) => {
@@ -139,7 +138,6 @@ export function RowActions({ row, table }) {
       email: data.email,
       birth: formatToGMT7(data.birth),
       address: data.address,
-      action_commission: data.contract.action_commission,
     });
 
     openedit();
@@ -163,7 +161,6 @@ export function RowActions({ row, table }) {
         email: form.email,
         birth: form.birth,
         address: form.address,
-        action_commission: form.action_commission,
       };
 
       const res = await editDoctor(payload);
@@ -388,17 +385,8 @@ export function RowActions({ row, table }) {
                     onChange={(e) => handleChange("address", e.target.value)}
                   />
                 </div>
-                <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-1">
-                  <Input
-                    type="number"
-                    label="Action Commission"
-                    value={form.action_commission}
-                    placeholder="Masukkan Action Commission"
-                    onChange={(e) =>
-                      handleChange("action_commission", e.target.value)
-                    }
-                  />
-                </div>
+
+                
                 <div className="mt-4 space-x-3 text-end">
                   <Button
                     onClick={closeedit}

@@ -1,36 +1,35 @@
 import { HomeIcon } from "@heroicons/react/24/outline";
 // import DashboardsIcon from "assets/dualicons/dashboards.svg?react";
 import { NAV_TYPE_ROOT, NAV_TYPE_ITEM } from "constants/app.constant";
-import { User2Icon } from "lucide-react";
+import { NotebookPenIcon } from "lucide-react";
 
-const ROOT_DASHBOARDS = "/patients";
+const ROOT_DASHBOARDS = "/appointment";
 
 const path = (root, item) => `${root}${item}`;
 
-export const patients = {
-  id: "patients",
+export const appointment = {
+  id: "appointment",
   type: NAV_TYPE_ROOT,
-  path: "/patients",
-  title: "patients",
-  transKey: "nav.patients.patients",
-  Icon: User2Icon,
+  path: "/appointment",
+  title: "appointment",
+  transKey: "nav.appointment.appointment",
+  Icon: NotebookPenIcon,
   roles: ["superadmin", "admin"],
-
   childs: [
     {
-      id: "patients.list",
+      id: "appointment.list",
       path: path(ROOT_DASHBOARDS, "/list"),
       type: NAV_TYPE_ITEM,
       title: "List",
-      transKey: "nav.patients.list",
+      transKey: "nav.appointment.list",
       Icon: HomeIcon,
     },
     {
-      id: "patients.add",
+      id: "appointment.add",
       path: path(ROOT_DASHBOARDS, "/add"),
       type: NAV_TYPE_ITEM,
-      title: "Add",
-      transKey: "nav.patients.add",
+      title: "List",
+      transKey: "nav.appointment.add",
       Icon: HomeIcon,
     },
   ],

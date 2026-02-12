@@ -1,7 +1,7 @@
 import { HomeIcon } from "@heroicons/react/24/outline";
 // import DashboardsIcon from "assets/dualicons/dashboards.svg?react";
 import { NAV_TYPE_ROOT, NAV_TYPE_ITEM } from "constants/app.constant";
-import {  UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 
 const ROOT_DASHBOARDS = "/doctors";
 
@@ -14,6 +14,7 @@ export const doctors = {
   title: "doctors",
   transKey: "nav.doctors.doctors",
   Icon: UserPlus,
+  roles: ["superadmin"],
   childs: [
     {
       id: "doctors.list",
@@ -22,6 +23,7 @@ export const doctors = {
       title: "List",
       transKey: "nav.doctors.list",
       Icon: HomeIcon,
+      // roles: ["superadmin", "admin"],
     },
     {
       id: "doctors.add",
@@ -30,6 +32,7 @@ export const doctors = {
       title: "Add",
       transKey: "nav.doctors.add",
       Icon: HomeIcon,
+      // roles: ["superadmin", "admin"],
     },
   ],
 };

@@ -21,7 +21,6 @@ export function Profile() {
     logout();
     toast.success("Logout berhasil");
   };
-  console.log(user);
 
   return (
     <Popover className="relative">
